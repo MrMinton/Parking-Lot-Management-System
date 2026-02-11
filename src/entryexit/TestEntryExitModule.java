@@ -2,6 +2,7 @@ package entryexit;
 
 import vehicles.*;
 import ParkingSpotLotFloor.*;
+import fines.*;
 import java.util.List;
 
 /**

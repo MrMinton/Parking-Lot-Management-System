@@ -1,3 +1,5 @@
+package fines;
+
 public class FixedFineScheme implements FineEngine {
     @Override
     public double calculateFine(double parkedHours) {

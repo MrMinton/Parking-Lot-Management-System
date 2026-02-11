@@ -2,6 +2,7 @@ package entryexit;
 
 import vehicles.Vehicle;
 import vehicles.ValidationEngine;
+import fines.Fine;
 import ParkingSpotLotFloor.ParkingLot;
 import ParkingSpotLotFloor.ParkingSpot;
 import ParkingSpotLotFloor.Floor;

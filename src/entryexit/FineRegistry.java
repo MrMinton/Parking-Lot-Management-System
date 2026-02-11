@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import fines.Fine;
 
 /**
  * FineRegistry manages all fines in the system.

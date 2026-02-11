@@ -3,6 +3,7 @@ package entryexit;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import fines.Fine;
 
 /**
  * Receipt class for exit payment processing.
