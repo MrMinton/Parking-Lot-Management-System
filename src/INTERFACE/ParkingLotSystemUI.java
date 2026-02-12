@@ -4,6 +4,7 @@ import ParkingSpotLotFloor.*;
 import entryexit.*;
 import fines.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -12,6 +13,7 @@ import vehicles.*;
 /**
  * Member 5 - Main GUI Integration
  * Package: UI
+ * Final Version: Detailed Billing + VIP + Size Safety + Moto Optimization
  */
 public class ParkingLotSystemUI extends JFrame {
 
@@ -24,8 +26,6 @@ public class ParkingLotSystemUI extends JFrame {
     private FineEngine activeFineScheme;
 
     // --- GUI Components ---
-    // [FIX 1] Removed 'mainTabPane' from here (it's now local in constructor)
-    // [FIX 2] Added 'final' to feedbackArea
     private final JTextArea feedbackArea;
     
     private DefaultTableModel spotStatusModel; 
@@ -36,7 +36,8 @@ public class ParkingLotSystemUI extends JFrame {
     // Entry Panel Components
     private JTextField plateEntry;
     private JComboBox<String> typeCombo;
-    private JCheckBox cardCheck;
+    private JCheckBox cardCheck;     // Handicapped Card
+    private JCheckBox reservedCheck; // VIP / Reserved Pass
     private JComboBox<String> spotCombo;
     private JButton parkBtn;
 
@@ -73,7 +74,6 @@ public class ParkingLotSystemUI extends JFrame {
         initializeSystem();
 
         // 5. Create Tabs
-        // [FIX 1] 'mainTabPane' is defined locally here
         JTabbedPane mainTabPane = new JTabbedPane();
         mainTabPane.addTab("Entry / Exit Panel", createEntryExitPanel());
         mainTabPane.addTab("Admin Panel", createAdminPanel());
@@ -90,12 +90,22 @@ public class ParkingLotSystemUI extends JFrame {
         activeFineScheme = new HourlyFineScheme(); 
 
         parkingLot = new ParkingLot("University Central");
-        parkingLot.initializeFloor(1, 4, 5, "compact"); 
-        parkingLot.initializeFloor(1, 2, 5, "handicapped");
-        parkingLot.initializeFloor(2, 6, 8, "regular");
-        parkingLot.initializeFloor(3, 2, 6, "reserved");
 
-        log("System Initialized. Default Fine Scheme: Hourly.");
+        // --- Floor Configuration ---
+        
+        // Floor 1: Compact (Motorcycles / Small Cars)
+        parkingLot.initializeFloor(1, 4, 5, "compact"); 
+
+        // Floor 2: Handicapped (Special Access)
+        parkingLot.initializeFloor(2, 2, 5, "handicapped");
+
+        // Floor 3: Regular (General Access)
+        parkingLot.initializeFloor(3, 8, 8, "regular"); 
+        
+        // Floor 4: RESERVED (VIP Only)
+        parkingLot.initializeFloor(4, 4, 5, "reserved");
+
+        log("System Initialized. Floor 4 is Reserved (VIP).");
     }
 
     // =================================================================================
@@ -115,20 +125,28 @@ public class ParkingLotSystemUI extends JFrame {
         plateEntry = new JTextField(10);
         typeCombo = new JComboBox<>(new String[]{"Car", "Motorcycle", "SUV", "Truck", "Handicapped"});
         cardCheck = new JCheckBox("Handicapped Card Holder?");
+        reservedCheck = new JCheckBox("VIP / Reserved Pass?");
         JButton searchBtn = new JButton("Search Available Spots");
         spotCombo = new JComboBox<>();
         parkBtn = new JButton("Park Vehicle & Generate Ticket");
         parkBtn.setEnabled(false);
 
+        // Layout
         gbc.gridx=0; gbc.gridy=0; entryPanel.add(new JLabel("License Plate:"), gbc);
         gbc.gridx=1; entryPanel.add(plateEntry, gbc);
+        
         gbc.gridx=0; gbc.gridy=1; entryPanel.add(new JLabel("Vehicle Type:"), gbc);
         gbc.gridx=1; entryPanel.add(typeCombo, gbc);
+        
         gbc.gridx=0; gbc.gridy=2; gbc.gridwidth=2; entryPanel.add(cardCheck, gbc);
-        gbc.gridx=0; gbc.gridy=3; entryPanel.add(searchBtn, gbc);
-        gbc.gridx=0; gbc.gridy=4; gbc.gridwidth=1; entryPanel.add(new JLabel("Select Spot:"), gbc);
+        gbc.gridx=0; gbc.gridy=3; gbc.gridwidth=2; entryPanel.add(reservedCheck, gbc);
+        
+        gbc.gridx=0; gbc.gridy=4; entryPanel.add(searchBtn, gbc);
+        
+        gbc.gridx=0; gbc.gridy=5; gbc.gridwidth=1; entryPanel.add(new JLabel("Select Spot:"), gbc);
         gbc.gridx=1; entryPanel.add(spotCombo, gbc);
-        gbc.gridx=0; gbc.gridy=5; gbc.gridwidth=2; entryPanel.add(parkBtn, gbc);
+        
+        gbc.gridx=0; gbc.gridy=6; gbc.gridwidth=2; entryPanel.add(parkBtn, gbc);
 
         // --- RIGHT: Vehicle Exit Interface ---
         JPanel exitPanel = new JPanel(new GridBagLayout());
@@ -154,18 +172,65 @@ public class ParkingLotSystemUI extends JFrame {
         gbc.gridx=0; gbc.gridy=5; gbc.gridwidth=2; exitPanel.add(payBtn, gbc);
 
         // --- ACTION LISTENERS ---
+        
         searchBtn.addActionListener(e -> {
             Vehicle v = createVehicleFromInput();
             if (v == null) return;
-            List<ParkingSpot> spots = entryExitManager.findAvailableSpots(v, parkingLot);
+            
+            // 1. Get ALL valid spots from the backend
+            List<ParkingSpot> allSpots = entryExitManager.findAvailableSpots(v, parkingLot);
             spotCombo.removeAllItems();
-            if(spots.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No valid spots found for " + v.getType());
+
+            // 2. Filter the list
+            List<ParkingSpot> filteredSpots = new ArrayList<>();
+            
+            String realType = (String) typeCombo.getSelectedItem();
+            boolean isBigVehicle = realType.equals("SUV") || realType.equals("Truck");
+            boolean isMotorcycle = realType.equals("Motorcycle");
+
+            for (ParkingSpot s : allSpots) {
+                boolean isReserved = s instanceof ReservedSpot;
+                boolean isCompact = s instanceof CompactSpot; // Floor 1
+                boolean isRegular = s instanceof RegularSpot; // Floor 3
+
+                // CHECK 1: Big vehicles NEVER fit in Compact spots
+                if (isBigVehicle && isCompact) {
+                    continue; 
+                }
+
+                // CHECK 2: Motorcycles should NEVER take Regular/Big spots (Floor 3)
+                // They should only use Compact (F1) or Handicapped (F2 if applicable)
+                if (isMotorcycle && isRegular) {
+                    continue;
+                }
+
+                if (reservedCheck.isSelected()) {
+                    // VIP USER: Show ONLY Reserved Spots (Floor 4)
+                    if (isReserved) filteredSpots.add(s);
+                }
+                else if (cardCheck.isSelected()) {
+                    // HANDICAPPED USER: Show everything EXCEPT Reserved (Floor 4)
+                    if (!isReserved) filteredSpots.add(s);
+                } 
+                else {
+                    // NORMAL USER: Show normal spots, HIDE Reserved
+                    if (!isReserved) filteredSpots.add(s);
+                }
+            }
+
+            // 3. Update Dropdown
+            if(filteredSpots.isEmpty()) {
+                String msg = "No spots found.";
+                if(reservedCheck.isSelected()) msg = "No VIP/Reserved spots available.";
+                else if(isBigVehicle) msg = "No suitable spots for large vehicles (Floor 1 is Compact).";
+                else if(isMotorcycle) msg = "Motorcycles must use Compact spots (Floor 1) or Handicapped spots.";
+                
+                JOptionPane.showMessageDialog(this, msg);
                 parkBtn.setEnabled(false);
             } else {
-                for(ParkingSpot s : spots) spotCombo.addItem(s.getSpotID());
+                for(ParkingSpot s : filteredSpots) spotCombo.addItem(s.getSpotID());
                 parkBtn.setEnabled(true);
-                log("Found " + spots.size() + " spots for " + v.getType());
+                log("Found " + filteredSpots.size() + " spots.");
             }
         });
 
@@ -189,11 +254,12 @@ public class ParkingLotSystemUI extends JFrame {
                     spotCombo.removeAllItems();
                     refreshAllData();
                 }
-            } catch (RuntimeException ex) { // [FIX 3] Specific Exception
+            } catch (RuntimeException ex) {
                 JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
             }
         });
 
+        // [UPDATED] CALC BUTTON - Detailed Billing Logic
         calcBtn.addActionListener(e -> {
             String plate = plateExit.getText().trim();
             ParkingSession session = entryExitManager.getSession(plate);
@@ -202,17 +268,32 @@ public class ParkingLotSystemUI extends JFrame {
                 return;
             }
             int hours = session.getParkingDuration();
+            
+            // Calculate Fine
             double fineVal = activeFineScheme.calculateFine(hours);
+            String fineMsg = "";
+
             if(fineVal > 0) {
                 Fine fine = new Fine(plate, fineVal, "Overstay ("+hours+" hrs)", hours);
                 fineRegistry.addFine(fine);
                 log("ALERT: Fine of RM " + fineVal + " applied for overstay.");
+                fineMsg = String.format("Fine: RM %.2f (Overstayed 24h)", fineVal);
+            } else {
+                fineMsg = "Fine: RM 0.00 (Grace Period)";
             }
+            
             double fee = entryExitManager.calculateParkingFee(session);
             double fines = fineRegistry.getTotalUnpaidAmount(plate);
             double total = fee + fines;
+            
             totalLabel.setText(String.format("Total Due: RM %.2f", total));
-            feedbackArea.setText(String.format("BILLING SUMMARY:\nDuration: %d hrs\nFee: RM %.2f\nFines: RM %.2f\nTOTAL: RM %.2f", hours, fee, fines, total));
+            
+            // Show clear Receipt text
+            feedbackArea.setText(String.format(
+                "BILLING SUMMARY:\n----------------\nDuration: %d hrs\nFee: RM %.2f\n%s\n----------------\nTOTAL: RM %.2f", 
+                hours, fee, fineMsg, total
+            ));
+            
             payBtn.setEnabled(true);
         });
 
@@ -230,7 +311,7 @@ public class ParkingLotSystemUI extends JFrame {
                 refreshAllData();
             } catch (NumberFormatException nfe) {
                 JOptionPane.showMessageDialog(this, "Invalid money amount.");
-            } catch (RuntimeException ex) { // [FIX 3] Specific Exception
+            } catch (RuntimeException ex) {
                 JOptionPane.showMessageDialog(this, "Payment Error: " + ex.getMessage());
             }
         });
@@ -243,15 +324,26 @@ public class ParkingLotSystemUI extends JFrame {
     private Vehicle createVehicleFromInput() {
         String plate = plateEntry.getText().trim();
         String type = (String) typeCombo.getSelectedItem();
+
         if(plate.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter a license plate.");
             return null;
         }
+
+        // [LOGIC] Priority Check
+        if (reservedCheck.isSelected()) {
+            return new HandicappedVehicle(plate, false); 
+        }
+
+        if (cardCheck.isSelected()) {
+            return new HandicappedVehicle(plate, true);
+        }
+
         return switch(type) {
             case "Motorcycle" -> new Motorcycle(plate);
             case "SUV" -> new SUV(plate);
             case "Truck" -> new Truck(plate);
-            case "Handicapped" -> new HandicappedVehicle(plate, cardCheck.isSelected());
+            case "Handicapped" -> new HandicappedVehicle(plate, true);
             default -> new Car(plate);
         };
     }

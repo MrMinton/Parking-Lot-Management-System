@@ -1,15 +1,15 @@
 package entryexit;
 
-import vehicles.Vehicle;
-import vehicles.ValidationEngine;
-import fines.Fine;
+import ParkingSpotLotFloor.Floor;
 import ParkingSpotLotFloor.ParkingLot;
 import ParkingSpotLotFloor.ParkingSpot;
-import ParkingSpotLotFloor.Floor;
+import fines.Fine;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import vehicles.ValidationEngine;
+import vehicles.Vehicle;
 
 /**
  * EntryExitManager - Main controller for vehicle entry and exit operations.

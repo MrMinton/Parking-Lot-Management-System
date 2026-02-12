@@ -1,8 +1,8 @@
 package entryexit;
 
-import vehicles.Vehicle;
 import ParkingSpotLotFloor.ParkingSpot;
 import java.time.LocalDateTime;
+import vehicles.Vehicle;
 
 /**
  * ParkingSession represents an active parking session.
