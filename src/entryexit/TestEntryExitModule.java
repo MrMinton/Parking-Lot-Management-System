@@ -42,8 +42,11 @@ public class TestEntryExitModule {
         // ═══════════════════════════════════════════════════════════════
         // SETUP: Create Entry/Exit Manager and Fine Registry
         // ═══════════════════════════════════════════════════════════════
-        FineRegistry fineRegistry = new FineRegistry();
-        EntryExitManager manager = new EntryExitManager(fineRegistry);
+        database.ParkingDAO parkingDAO = new database.ParkingDAO();
+        database.FineDAO fineDAO = new database.FineDAO();
+        
+        FineRegistry fineRegistry = new FineRegistry(fineDAO);
+        EntryExitManager manager = new EntryExitManager(fineRegistry, parkingDAO);
         
         System.out.println("✓ EntryExitManager initialized\n");
         System.out.println("═".repeat(60) + "\n");

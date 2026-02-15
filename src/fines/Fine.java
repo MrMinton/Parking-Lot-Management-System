@@ -55,4 +55,12 @@ public class Fine {
 		return reason;
 	}
 
+    // Setters for DB Reconstruction
+    public void setDateIssued(LocalDateTime dateIssued) {
+        this.dateIssued = dateIssued;
+    }
+    public void setFineID(String fineID) {
+        this.fineID = fineID;
+    }
+
 }

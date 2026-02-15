@@ -104,4 +104,12 @@ public class Ticket {
         return String.format("Ticket[%s] - Plate: %s, Spot: %s, Entry: %s", 
             ticketID, licensePlate, assignedSpotID, entryTime);
     }
+
+    // Setters for DB Reconstruction
+    public void setEntryTime(LocalDateTime entryTime) {
+        this.entryTime = entryTime;
+    }
+    public void setTicketID(String ticketID) {
+        this.ticketID = ticketID;
+    }
 }

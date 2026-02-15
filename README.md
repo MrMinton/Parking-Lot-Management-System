@@ -38,6 +38,6 @@ This project is a standalone GUI application developed using **Java Swing**. It 
 * **GUI:** Java Swing (Required)
 
 ## 🏗️ Design Pattern
-**Pattern Used:** Singleton
+**Pattern Used:** Facade
 ---
 *This project is for educational purposes only.*

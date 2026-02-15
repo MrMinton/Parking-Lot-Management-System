@@ -32,13 +32,22 @@ public class EntryExitManager {
     
     // Fine registry (shared with Member 4's module)
     private FineRegistry fineRegistry;
+    private database.ParkingDAO parkingDAO;
 
     /**
      * Constructor: Initializes the entry/exit manager
      */
-    public EntryExitManager(FineRegistry fineRegistry) {
+    public EntryExitManager(FineRegistry fineRegistry, database.ParkingDAO parkingDAO) {
         this.activeSessions = new HashMap<>();
         this.fineRegistry = fineRegistry;
+        this.parkingDAO = parkingDAO;
+    }
+
+    // Helper to restore sessions from DB on startup
+    public void restoreSession(ParkingSession session) {
+        activeSessions.put(session.getLicensePlate(), session);
+        // Also update the spot status in memory
+        session.getSpot().assignVehicle(session.getLicensePlate());
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -118,6 +127,9 @@ public class EntryExitManager {
         // Create parking session (Requirement 4)
         ParkingSession session = new ParkingSession(vehicle, spot, ticket);
         activeSessions.put(plate, session);
+        
+        // DB PERSISTENCE
+        parkingDAO.saveSession(session);
         
         System.out.println("[EntryExitManager] Vehicle parked successfully: " + plate + 
                           " in spot " + spot.getSpotID());
@@ -214,6 +226,9 @@ public class EntryExitManager {
         
         // Remove from active sessions
         activeSessions.remove(licensePlate);
+        
+        // DB PERSISTENCE
+        parkingDAO.updateSessionExit(licensePlate, totalAmount);
         
         System.out.println("[EntryExitManager] Vehicle exited successfully: " + licensePlate);
         

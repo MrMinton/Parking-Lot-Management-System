@@ -85,27 +85,42 @@ public class ParkingLotSystemUI extends JFrame {
     }
 
     private void initializeSystem() {
-        fineRegistry = new FineRegistry();
-        entryExitManager = new EntryExitManager(fineRegistry);
-        activeFineScheme = new HourlyFineScheme(); 
+        // 1. Initialize Database Access Objects
+        database.ParkingDAO parkingDAO = new database.ParkingDAO();
+        database.FineDAO fineDAO = new database.FineDAO(); // Fixed: Added FineDAO
 
+        // 2. Initialize Registries
+        fineRegistry = new FineRegistry(fineDAO);
+        
+        // 3. Initialize Parking Lot (Moved up to be available for restoration)
         parkingLot = new ParkingLot("University Central");
 
         // --- Floor Configuration ---
-        
         // Floor 1: Compact (Motorcycles / Small Cars)
         parkingLot.initializeFloor(1, 4, 5, "compact"); 
-
         // Floor 2: Handicapped (Special Access)
         parkingLot.initializeFloor(2, 2, 5, "handicapped");
-
         // Floor 3: Regular (General Access)
         parkingLot.initializeFloor(3, 8, 8, "regular"); 
-        
         // Floor 4: RESERVED (VIP Only)
         parkingLot.initializeFloor(4, 4, 5, "reserved");
+        
+        // 4. Initialize Manager with DAOs
+        entryExitManager = new EntryExitManager(fineRegistry, parkingDAO);
+        activeFineScheme = new HourlyFineScheme(); 
 
         log("System Initialized. Floor 4 is Reserved (VIP).");
+        
+        // 5. Restore State from Database
+        try {
+            List<ParkingSession> activeSessions = parkingDAO.getAllActiveSessions(parkingLot.getSpotMap());
+            for (ParkingSession s : activeSessions) {
+                entryExitManager.restoreSession(s);
+            }
+            log("Restored " + activeSessions.size() + " active parking sessions from database.");
+        } catch (Exception e) {
+            log("Warning: Failed to restore sessions from database: " + e.getMessage());
+        }
     }
 
     // =================================================================================

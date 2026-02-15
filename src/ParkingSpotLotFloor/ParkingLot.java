@@ -53,4 +53,14 @@ public class ParkingLot {
     }
 
     public List<Floor> getFloors() { return floors; }
+
+    public java.util.Map<String, ParkingSpot> getSpotMap() {
+        java.util.Map<String, ParkingSpot> map = new java.util.HashMap<>();
+        for (Floor f : floors) {
+            for (ParkingSpot s : f.getSpots()) {
+                map.put(s.getSpotID(), s);
+            }
+        }
+        return map;
+    }
 }
